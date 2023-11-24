@@ -15,7 +15,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer();
 
-builder.Services.AddKeycloakAuthorization(builder.Configuration);
+builder.Services.AddAuthorization();
 
 builder.Services.AddMultiTenant<TenantInfo>()
     .WithStrategy<PathStrategy>(ServiceLifetime.Transient)
