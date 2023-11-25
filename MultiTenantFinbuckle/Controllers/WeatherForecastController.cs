@@ -1,15 +1,24 @@
 using Finbuckle.MultiTenant;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using MulltiTenantFinbuckle.Models;
+using static System.DateOnly;
+using static System.DateTime;
 
 namespace MulltiTenantFinbuckle.Controllers;
 
 [ApiController]
-[Route("/sus/[controller]")]
+[Route("/sus/sus")]
 public class WeatherForecastController : ControllerBase
 {
-    private static readonly string[] Summaries = {
-        "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
+    private static readonly string[] SusSummaries =
+    {
+        "Sus", "Sus", "Sus"
+    };
+
+    private static readonly string[] VaultSummaries =
+    {
+        "Vault", "Vault", "Vault"
     };
 
     private readonly ILogger<WeatherForecastController> _logger;
@@ -23,13 +32,23 @@ public class WeatherForecastController : ControllerBase
     [HttpGet(Name = "GetWeatherForecast")]
     public IEnumerable<WeatherForecast> Get()
     {
-        var value = HttpContext.GetMultiTenantContext<TenantInfo>()?.TenantInfo;
-        Console.WriteLine($"Tenant: {value?.Identifier}");
+        var value = HttpContext.GetMultiTenantContext<MultiTenantInfo>()?.TenantInfo;
+        if (value?.Identifier == "sus")
+        {
+            return Enumerable.Range(1, 5).Select(index => new WeatherForecast
+                {
+                    Date = FromDateTime(Now.AddDays(index)),
+                    TemperatureC = Random.Shared.Next(-20, 55),
+                    Summary = SusSummaries[Random.Shared.Next(SusSummaries.Length)]
+                })
+                .ToArray();
+        }
+
         return Enumerable.Range(1, 5).Select(index => new WeatherForecast
             {
-                Date = DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
+                Date = FromDateTime(Now.AddDays(index)),
                 TemperatureC = Random.Shared.Next(-20, 55),
-                Summary = Summaries[Random.Shared.Next(Summaries.Length)]
+                Summary = VaultSummaries[Random.Shared.Next(VaultSummaries.Length)]
             })
             .ToArray();
     }

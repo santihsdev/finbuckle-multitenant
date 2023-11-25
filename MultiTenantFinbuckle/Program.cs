@@ -1,73 +1,40 @@
-using Finbuckle.MultiTenant;
-using Keycloak.AuthServices.Authentication;
-using Keycloak.AuthServices.Authorization;
-using Keycloak.AuthServices.Common;
-using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Authentication.OpenIdConnect;
-using Microsoft.IdentityModel.Protocols.OpenIdConnect;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using MulltiTenantFinbuckle.Tenant;
+using MulltiTenantFinbuckle.Db;
+using MulltiTenantFinbuckle.Models;
+using MulltiTenantFinbuckle.Tenant.Strategies;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
+builder.Services.AddDbContext<TenantAdminDbContext>(opt
+    => opt.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"))
+);
+
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer();
 
 builder.Services.AddAuthorization();
 
-builder.Services.AddMultiTenant<TenantInfo>()
-    .WithStrategy<PathStrategy>(ServiceLifetime.Transient)
-    .WithInMemoryStore(opt =>
-    {
-        opt.IsCaseSensitive = true;
-        opt.Tenants.Add(new TenantInfo
-        {
-            Id = "tenant1",
-            Identifier = "sus",
-            Name = "Sussex",
-        });
-        opt.Tenants.Add(new TenantInfo
-        {
-            Id = "tenant2",
-            Identifier = "cns",
-            Name = "CNS",
-        });
-    })
+builder.Services.AddMultiTenant<MultiTenantInfo>()
+    .WithStrategy<TokenStrategy>(ServiceLifetime.Transient)
+    .WithEFCoreStore<TenantAdminDbContext, MultiTenantInfo>()
     .WithPerTenantAuthentication()
     .WithPerTenantOptions<JwtBearerOptions>((opt, tenantInfo) =>
     {
-        if (tenantInfo.Identifier == "sus")
+        opt.Authority = tenantInfo.AuthServerUrl;
+        opt.Audience = tenantInfo.Resource;
+        opt.SaveToken = true;
+        opt.TokenValidationParameters = new TokenValidationParameters
         {
-            opt.Authority = "https://login.rohmer.jala-one.com/realms/sus";
-            opt.Audience = "client-sus";
-            opt.SaveToken = true;
-            opt.TokenValidationParameters = new TokenValidationParameters
-            {
-                ValidateAudience = true,
-                ValidateIssuer = true,
-                ValidAudience = "account",
-                ValidIssuer = "https://login.rohmer.jala-one.com/realms/sus",
-                NameClaimType = "preferred_username",
-                RoleClaimType = "role"
-            };
-        }
-        else
-        {
-            opt.Authority = "https://login.rohmer.jala-one.com/realms/vault";
-            opt.Audience = "admin-vault";
-            opt.SaveToken = true;
-            opt.TokenValidationParameters = new TokenValidationParameters
-            {
-                ValidateAudience = true,
-                ValidateIssuer = true,
-                ValidAudience = "account",
-                ValidIssuer = "https://login.rohmer.jala-one.com/realms/vault",
-                NameClaimType = "preferred_username",
-                RoleClaimType = "role"
-            };
-        }
+            ValidateAudience = true,
+            ValidateIssuer = true,
+            ValidAudience = "account",
+            ValidIssuer = tenantInfo.AuthServerUrl,
+            NameClaimType = "preferred_username",
+            RoleClaimType = "role"
+        };
     });
 
 builder.Services.AddControllers();

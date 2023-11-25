@@ -1,6 +1,6 @@
 using Finbuckle.MultiTenant;
 
-namespace MulltiTenantFinbuckle.Tenant;
+namespace MulltiTenantFinbuckle.Tenant.Strategies;
 
 public class PathStrategy : IMultiTenantStrategy
 {
